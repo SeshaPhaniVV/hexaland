@@ -25,7 +25,7 @@ return function (App $app) {
             $group->get('', ListHexagonsAction::class);
             $group->post('', AddHexagonAction::class);
             $group->delete('/{name}', DeleteHexagonAction::class);
-            $group->get('/{id}', ViewHexagonAction::class);
+            $group->get('/{name}', ViewHexagonAction::class);
         });
     });
 };

@@ -12,34 +12,21 @@ use Exception;
 
 class HexagonService implements HexagonRepository
 {
-    /**
-     * @var Hexagon[]
-     */
-    private $hexagons;
-
-    /**
-     * InMemoryUserRepository constructor.
-     *
-     */
-    public function __construct()
-    {
-        $this->hexagons = Hexagon::query()->get();
-    }
 
     /**
      * {@inheritdoc}
      */
     public function findAll(): array
     {
-        return $this->hexagons->toArray();
+        return Hexagon::query()->get()->toArray();
     }
 
     /**
      * {@inheritdoc}
      */
-    public function findHexagonOfId(int $id, bool $includeNeighbors = false): Hexagon
+    public function findHexagonOfName(string $name, bool $includeNeighbors = false)
     {
-        $hexagon = $this->hexagons->where('id', $id)->first();
+        $hexagon = Hexagon::query()->where('name', $name)->first();
 
         if (is_null($hexagon)) {
             throw new HexagonNotFoundException();
@@ -49,15 +36,13 @@ class HexagonService implements HexagonRepository
     }
 
     /**
-     * @param int $id
+     * @param Hexagon $hexagon
      *
      * @return array
-     *
-     * @throws HexagonNotFoundException
      */
-    public function getNeighborsOfHexagon(int $id): array
+    public function getNeighborsOfHexagon(Hexagon $hexagon): array
     {
-        $coords = $this->getCoords($id);
+        $coords = $hexagon['coords'];
         $neighborCoords = $this->getNeighborCoords($coords);
 
         return Hexagon::query()->whereIn('coords', $neighborCoords)->get()->toArray();
@@ -147,41 +132,43 @@ class HexagonService implements HexagonRepository
 
     /**
      * @param string $name
-     * @return bool
      *
-     * @throws HexagonNotFoundException
+     * @return bool
      */
     private function validateDeletion(string $name): bool
     {
-        $hexagons = Hexagon::query()->whereNotIn('name', [$name]);
-        $hexagon = Hexagon::findByName($name);
-        $queue = $this->getNeighborsOfHexagon($hexagon['id']);
-        if (empty($queue)) {
-            return false;
-        }
-        $queue = [$queue[0]['coords']];
+        $hexagons = Hexagon::query()->whereNotIn('name', [$name])->get()->toArray();
+
+        $hexagons = array_reduce($hexagons, function ($agg, $hex) {
+            $agg[$hex['coords']] = true;
+            return $agg;
+        }, []);
+
+        $stack = [array_keys($hexagons)[0]];
         $visited = [];
-        $total = $hexagons->count();
+        $total = count($hexagons);
 
         // We should atleast have one record in db.
         if ($total === 0) {
             return false;
         }
 
-        while(sizeof($queue) > 0) {
-            $len = sizeof($queue);
+        while(sizeof($stack) > 0) {
+            $len = sizeof($stack);
             for ($i = 0; $i < $len; $i++) {
-                $tempHex = clone $hexagons;
-                $hex = array_pop($queue);
-                array_push($visited, $hex);
+                $hex = array_pop($stack);
+                $visited[$hex] = true;
                 $neighborCoords = $this->getNeighborCoords($hex);
-                $neighbors = $tempHex->whereIn('coords', $neighborCoords)->get();
-                $neighbors = $neighbors->whereNotIn('coords', $visited)->pluck('coords')->toArray();
-                $queue = array_values(array_unique(array_merge($neighbors, $queue)));
+
+                foreach ($neighborCoords as $neighbor) {
+                    if (array_key_exists($neighbor, $hexagons) && !array_key_exists($neighbor, $visited)) {
+                        array_push($stack, $neighbor);
+                    }
+                }
             }
         }
 
-        return sizeof($visited) === $total;
+        return count($visited) === $total;
     }
 
     /**
@@ -193,7 +180,7 @@ class HexagonService implements HexagonRepository
      */
     private function getCoords($id): string
     {
-        $hexagon = $this->findHexagonOfId($id);
+        $hexagon = Hexagon::query()->find($id);
         return $hexagon['coords'];
     }
 

@@ -3,8 +3,6 @@ declare(strict_types=1);
 
 namespace App\Domain\Hexagon;
 
-use App\Domain\Hexagon\HexagonNotFoundException;
-
 interface HexagonRepository
 {
     /**
@@ -13,11 +11,11 @@ interface HexagonRepository
     public function findAll(): array;
 
     /**
-     * @param int $id
+     * @param string $name
      *
      * @throws HexagonNotFoundException
      */
-    public function findHexagonOfId(int $id);
+    public function findHexagonOfName(string $name);
 
     /**
      * @param array $hexagon
@@ -27,10 +25,11 @@ interface HexagonRepository
     public function addHexagon(array $hexagon): Hexagon;
 
     /**
-     * @param int $id
+     * @param Hexagon $hexagon
+     *
      * @return array
      */
-    public function getNeighborsOfHexagon(int $id): array;
+    public function getNeighborsOfHexagon(Hexagon $hexagon): array;
 
     /**
      * @param string $name

@@ -12,13 +12,13 @@ class ViewHexagonAction extends HexagonAction
      */
     protected function action(): Response
     {
-        $hexagonId = (int) $this->resolveArg('id');
-        $response['hexagon'] = $this->hexagonRepository->findHexagonOfId($hexagonId);
+        $hexagonName = $this->resolveArg('name');
+        $response['hexagon'] = $this->hexagonRepository->findHexagonOfName($hexagonName);
 
         $include_neighbors = (bool) $this->getQueryParam('include_neighbors');
 
         if ($include_neighbors) {
-            $nei = $this->hexagonRepository->getNeighborsOfHexagon($hexagonId);
+            $nei = $this->hexagonRepository->getNeighborsOfHexagon($response['hexagon']);
             $response['neighbors'] = $nei;
         }
 
